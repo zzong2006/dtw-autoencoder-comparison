@@ -7,18 +7,18 @@ from sklearn.cluster import KMeans, MiniBatchKMeans, DBSCAN
 from sklearn import metrics
 import matplotlib.cm as cm
 from sklearn.preprocessing import StandardScaler
-from mpl_toolkits.mplot3d import Axes3D     # 3d plot을 위한 package
+from mpl_toolkits.mplot3d import Axes3D  # 3d plot을 위한 package
 from DWT_v2 import DWT
 
 start_time = time.time()
 _withLabel = True
 # sample = DWT(num_window='all', dataFile='InsectWingbeatSound_TEST.csv',withLabel=_withLabel, wvType='haar')
-sample = DWT(num_window='all', dataFile='InsectWingbeatSound_TRAIN.csv',withLabel=_withLabel, wvType='haar')
+sample = DWT(num_window='all', dataFile='InsectWingbeatSound_TRAIN.csv', withLabel=_withLabel, wvType='haar')
 
 # 9 : 2, 8 : 4, 7 : 8, 6 : 16
 sample.reduce_data(object_dimension=25,
                    addition_info=False, lvl=5)
-sample.showComprassPrecision(withReducedData= 1)
+sample.showComprassPrecision(withReducedData=1)
 
 # n_clusters : The number of clusters to form as well as the number of centroids to generate.
 # n_init : Number of time the k-means algorithm will be run with different centroid seeds.
@@ -28,7 +28,6 @@ sample.showComprassPrecision(withReducedData= 1)
 S_score = []
 # Elbow method value
 E_score = []
-
 
 '''
 'euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 
@@ -41,13 +40,13 @@ E_score = []
 numOfCluster = 60
 for i in range(2, numOfCluster):
     kmeans_model = KMeans(init='k-means++', n_clusters=i,
-                                   n_init=10, verbose=False)
-    labels_= kmeans_model.fit_predict(sample.reducedWindow)
-    S_score.append(metrics.silhouette_score(sample.normalizedData,labels_,
-                                   metric='euclidean'))
+                          n_init=10, verbose=False)
+    labels_ = kmeans_model.fit_predict(sample.reducedWindow)
+    S_score.append(metrics.silhouette_score(sample.normalizedData, labels_,
+                                            metric='euclidean'))
     E_score.append(metrics.calinski_harabaz_score(sample.normalizedData, labels_))
-print(pd.DataFrame(S_score, index =[x for x in range(2, numOfCluster)]))
-print('max index {} and max value {}'.format(np.argmax(S_score)+2, np.max(S_score)))
+print(pd.DataFrame(S_score, index=[x for x in range(2, numOfCluster)]))
+print('max index {} and max value {}'.format(np.argmax(S_score) + 2, np.max(S_score)))
 
 # sampleClusterNum = 11
 # kmeans_model = KMeans(init='k-means++', n_clusters=sampleClusterNum, n_init=10)

@@ -3,14 +3,10 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tslearn.clustering import TimeSeriesKMeans, silhouette_score
+from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series
 from sklearn import metrics
-import matplotlib.cm as cm
-from sklearn.preprocessing import StandardScaler
-from mpl_toolkits.mplot3d import Axes3D     # 3d plot을 위한 package
 from DWT_v2 import DWT
-from kmedoids import KMedoids
 
 start_time = time.time()
 
@@ -18,7 +14,7 @@ sample = DWT(num_window='all', window_size=140, dataFile='ECG5000_TEST.csv',
              wvType='haar')
 
 # 9 : 2, 8 : 4, 7 : 8, 6 : 16
-sample.reduce_data( object_dimension=25,
+sample.reduce_data(object_dimension=25,
                    addition_info=False, lvl=2)
 # sample.showComprassPrecision(withReducedData= 1)
 
@@ -59,7 +55,7 @@ for i in range(2, numOfCluster):
     # labels_ = dba_km.fit_predict(sample.reducedWindow)
     # S_score.append(silhouette_score(sample.normalizedData, labels_, metric="dtw"))
 
-    S_score.append(metrics.silhouette_score(sample.normalizedData,labels_, metric='l1'))
+    S_score.append(metrics.silhouette_score(sample.normalizedData, labels_, metric='l1'))
     E_score.append(metrics.calinski_harabaz_score(sample.normalizedData, labels_))
     print('S_score : {}'.format(S_score))
 print(E_score)
@@ -70,7 +66,7 @@ print(E_score)
 
 fig = plt.figure(figsize=(8, 8))
 
-grid = plt.GridSpec(2,2)
+grid = plt.GridSpec(2, 2)
 # colors = cm.nipy_spectral(y_kmeans.astype(float)/ sampleClusterNum)
 #
 # # np.set_printoptions(suppress=True)
@@ -147,13 +143,13 @@ grid = plt.GridSpec(2,2)
 # ax1.set_xlabel("The silhouette coefficient values")
 # ax1.set_ylabel("Cluster label")
 
-plt.subplot(grid[1,0])
+plt.subplot(grid[1, 0])
 plt.plot([x for x in range(2, numOfCluster)], E_score)
 plt.ylabel("Calinski-Harabaz Score")
 plt.xlabel("Number of centroids")
 plt.title("Calinski-Harabaz Index")
 
-plt.subplot(grid[1,1:])
+plt.subplot(grid[1, 1:])
 plt.plot([x for x in range(2, numOfCluster)], S_score)
 plt.ylabel("silhouette_score")
 plt.xlabel("Number of centroids")

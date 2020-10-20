@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 import random
 from sklearn import preprocessing
 
+
 class DWT:
-    def __init__(self, num_window = 100, dataFile = 'real_splitted_data.csv', withLabel = False
-                 , wvType ='haar', normalized = True):
+    def __init__(self, num_window=100, dataFile='real_splitted_data.csv', withLabel=False
+                 , wvType='haar', normalized=True):
         self.windowData = []
         self.waveletType = wvType
 
@@ -20,19 +21,17 @@ class DWT:
         self.windowSize = df.shape[1]
         self.totalWindow = df.shape[0]
 
-        if withLabel :
+        if withLabel:
             self.true_labels_ = df.iloc[:, 0].values
             x = df.drop(df.columns[0], axis=1)
             self.windowData = x.values
             self.windowSize -= 1
-        else :
+        else:
             self.windowData = df.values
 
-
-
-        if num_window is 'all' :
+        if num_window is 'all':
             self.num_window = self.totalWindow
-        else :
+        else:
             self.num_window = num_window
 
         # Ex. (200, 1000)
@@ -41,12 +40,12 @@ class DWT:
         self.max_level = pywt.dwt_max_level(data_len=self.windowSize, filter_len=pywt.Wavelet(self.waveletType).dec_len)
         print('Max DWT level we can reach : "{}" '.format(self.max_level))
 
-        if normalized :
+        if normalized:
             self.normalizedData = preprocessing.scale(self.windowData)
-        else :
+        else:
             self.normalizedData = self.windowData
 
-    def reduce_data(self, object_dimension = 128, addition_info = True, lvl = 5):
+    def reduce_data(self, object_dimension=128, addition_info=True, lvl=5):
 
         coeffs_haar = pywt.wavedec(self.windowData[0], self.waveletType, level=lvl)
         print('The number of approximation coefficients of DWT : {}'.format(
@@ -59,27 +58,26 @@ class DWT:
         self.recoveredWindow = []
 
         # detailed coefficients의 min, max, variance를 첨가한다.
-        if addition_info :
+        if addition_info:
             for z in range(self.num_window):
                 coeffs_haar = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
 
                 # self.reducedWindow.append(coeffs_haar[0].tolist())
                 self.reducedWindow.append([])
 
-                for w in range(0,len(coeffs_haar)):
+                for w in range(0, len(coeffs_haar)):
                     self.reducedWindow[z] = np.append(self.reducedWindow[z], np.max(coeffs_haar[w]))
                     self.reducedWindow[z] = np.append(self.reducedWindow[z], np.min(coeffs_haar[w]))
                     self.reducedWindow[z] = np.append(self.reducedWindow[z], np.std(coeffs_haar[w]))
                     self.reducedWindow[z] = np.append(self.reducedWindow[z], np.mean(coeffs_haar[w]))
                 self.num_elements = len(self.reducedWindow[z])
 
-        else :
+        else:
             for z in range(self.num_window):
                 coeffs_haar = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
 
                 # for i in range(0, len(coeffs_haar)):
                 #     modified_coeffs_haar01[i] = pywt.threshold(coeffs_haar[i], 0,'hard')
-
 
                 self.reducedWindow.append(coeffs_haar[0])
                 self.num_elements = len(coeffs_haar[0])
@@ -89,7 +87,7 @@ class DWT:
 
         print(self.reducedWindow[0])
         print('We reduce the dimension of window from ' + str(self.windowSize) + ' to ' + str(self.num_elements))
-        print('Make '+ str(self.num_window) + ' window data')
+        print('Make ' + str(self.num_window) + ' window data')
 
         # print reduced dimensional type of signal
         # w01 = plt.figure(); plt.plot(self.windowData[4]);
@@ -97,7 +95,7 @@ class DWT:
         # plt.close(w01); plt.close(w02);
 
     # v2 는 복구하는 버전을 생략했음 (어차피 window 원본을 사용할 것이기 때문에). 시간이 있으면 만들어 봐도 좋음.
-    def showComprassPrecision(self, num_window = 20, withReducedData = 0):
+    def showComprassPrecision(self, num_window=20, withReducedData=0):
         pass
         # for z in range(num_window):
         #     # elementsForRestore =  copy.copy(self.reducedWindow[z])

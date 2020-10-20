@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="woosung@165.132.214.219:22">
+  <component name="PublishConfigData" autoUpload="Always">
     <serverData>
-      <paths name="woosung@165.132.214.219:22">
+      <paths name="dbadmin@localhost:6000">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/pycharm_project_136" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/dbadmin/woosung/DWT-AutoEncoder-Comparison" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
