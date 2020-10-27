@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from rbm_v2 import BBRBM, GBRBM
 import os
 
-from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("./mnist/data/", one_hot=True)
 
 #########
@@ -37,11 +36,11 @@ if not os.path.isdir('out'):
 start = False
 
 if start:
-    errs = rbmObject01.fit(mnist.train.images, n_epoches=20, batch_size=10)
+    errs = rbmObject01.fit(mnist.train_SGD.images, n_epoches=20, batch_size=10)
     rbmObject01.save_weights('./out/RBM_data1','RBM_vr1')
     plt.plot(errs)
     plt.show()
-    rbmObject02.fit(rbmObject01.transform(mnist.train.images), n_epoches=20, batch_size=10)
+    rbmObject02.fit(rbmObject01.transform(mnist.train_SGD.images), n_epoches=20, batch_size=10)
     rbmObject02.save_weights('./out/RBM_data2', 'RBM_vr2')
 
 #########
@@ -100,13 +99,13 @@ optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
 init = tf.global_variables_initializer()
 sess.run(init)
 
-total_batch = int(mnist.train.num_examples/batch_size)
+total_batch = int(mnist.train_SGD.num_examples / batch_size)
 
 for epoch in range(training_epoch):
     total_cost = 0
 
     for i in range(total_batch):
-        batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+        batch_xs, batch_ys = mnist.train_SGD.next_batch(batch_size)
         _, cost_val = sess.run([optimizer, cost],
                                feed_dict={X: batch_xs})
         total_cost += cost_val
