@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn import metrics
 import matplotlib.cm as cm
 from sklearn.datasets import make_blobs
-from autoEncoder_v3 import *
+from autoencoder import *
 
 _withLabel = True
 nnAE = nnAutoEncoder(trainFile='InsectWingbeatSound_TRAIN.csv',

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always">
+  <component name="PublishConfigData" autoUpload="Always" serverName="dbadmin@localhost:45961 password">
     <serverData>
-      <paths name="dbadmin@localhost:6000">
+      <paths name="dbadmin@localhost:45961 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/dbadmin/woosung/DWT-AutoEncoder-Comparison" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/woosung/DWT-AutoEncoder-Comparison" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

@@ -1,4 +1,4 @@
-from AutoEncoder import AutoEncoderModule
+from autoencoder import AutoEncoderModule
 from utils import *
 import tensorflow as tf
 import numpy as np
