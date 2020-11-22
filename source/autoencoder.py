@@ -12,36 +12,69 @@ from tensorflow.keras.models import Model
 
 
 class AutoEncoder(Model):
-    def __init__(self, units, network_type='normal'):
+    def __init__(self, num_of_hidden: list, network_type: str = 'normal', **kwargs):
         super(AutoEncoder, self).__init__()
         self.encoder = tf.keras.Sequential()
         self.decoder = tf.keras.Sequential()
         self.type = network_type
+        self.optimizer = tf.keras.optimizers.Adam()
 
         # Dense layer type Model
         if network_type == 'normal':
             # Encoder 모델 레이어 설정
-            self.encoder.add(tf.keras.Input(shape=(units[0],)))  # 입력 array shape는 (None, units[0])
-            for i in range(1, len(units)):
-                self.encoder.add(tf.keras.layers.Dense(units[i], activation='relu'))
+            self.encoder.add(tf.keras.Input(shape=(num_of_hidden[0],)))  # 입력 array shape는 (None, units[0])
+            for i in range(1, len(num_of_hidden)):
+                self.encoder.add(layers.Dense(num_of_hidden[i], activation='relu'))
 
             # Decoder 모델 레이어 설정
-            self.decoder.add(tf.keras.Input(shape=(units[-1],)))
-            for i in reversed(range(1, len(units) - 1)):
-                self.decoder.add(layers.Dense(units[i], activation='relu'))
-            self.decoder.add(layers.Dense(units[0], activation='sigmoid'))
-        # RNN Layer type Model
+            self.decoder.add(tf.keras.Input(shape=(num_of_hidden[-1],)))
+            for i in reversed(range(1, len(num_of_hidden) - 1)):
+                self.decoder.add(layers.Dense(num_of_hidden[i], activation='relu'))
+            self.decoder.add(layers.Dense(num_of_hidden[0], activation='sigmoid'))
+        # RNN Layer type Model (Seq2Seq)
         elif network_type == 'rnn':
-            self.encoder.add(layers.GRU())
+            self.encoder = layers.LSTM(num_of_hidden[0] // 4, return_state=True, input_shape=(None, 1))
+            self.decoder = layers.LSTM(num_of_hidden[0] // 4, return_sequences=True, input_shape=(None, 1))
+            self.dense = layers.Dense(1)
         elif network_type == 'cnn':
-            self.encoder.add(layers.Conv1D())
+            self.encoder.add(layers.Conv1D(num_of_hidden[0] // 8))
 
-    def call(self, inputs, training=None, mask=None):
-        encoded = self.encoder(inputs)
-        decoded = self.decoder(encoded)
+    def call(self, inputs, training=None, mask=None, **kwargs):
+        if self.type == 'normal':
+            encoded = self.encoder(inputs)
+            decoded = self.decoder(encoded)
+        elif self.type == 'rnn':
+            encoder_input, decoder_input = inputs['encoder_input'], inputs['decoder_input']
+            encoded, state_h, state_c = self.encoder(encoder_input)
+            decoded = self.decoder(decoder_input, initial_state=[state_h, state_c])
+            decoded = self.dense(decoded)
         return decoded
 
     def get_config(self):
+        pass
+
+    @tf.function
+    def train_step(self, inp, target):
+        with tf.GradientTape() as tape:
+            predictions = self(inp)
+            loss = tf.reduce_mean(tf.keras.losses.mse(target, predictions))
+        grads = tape.gradient(loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
+
+        return loss
+
+    def train_loop(self, dataset, epochs):
+        for epoch in range(epochs):
+            hidden = self.reset_states()
+
+            for (batch_n, (inp, target)) in enumerate(dataset):
+                loss = self.train_step(inp, target)
+
+                if batch_n % 100 == 0:
+                    template = 'epochs {} batch {} loss {:.8f}'
+                    print(template.format(epoch + 1, batch_n, loss))
+
+    def generate_seq(self):
         pass
 
 
@@ -52,6 +85,9 @@ if __name__ == '__main__':
         데이터셋은 길이가 140인 총 4998 개의 시계열 데이터로, 0 (비정상) 또는 1 (정상)으로 labeling 되어 있다.
           
     """
+    USE_RNN = True
+    SHOW_DATASET = False
+
     dataframe = pd.read_csv('http://storage.googleapis.com/download.tensorflow.org/data/ecg.csv', header=None)
     raw_data = dataframe.values
     print(dataframe.head())
@@ -86,37 +122,53 @@ if __name__ == '__main__':
     anomalous_train_data = train_data[~train_labels]
     anomalous_test_data = test_data[~test_labels]
 
-    # 정상 ECG Plotting
-    plt.grid()
-    plt.plot(np.arange(140), normal_train_data[0])
-    plt.title("A Normal ECG")
-    plt.show()
+    if SHOW_DATASET:
+        # 정상 ECG Plotting
+        plt.grid()
+        plt.plot(np.arange(140), normal_train_data[0])
+        plt.title("A Normal ECG")
+        plt.show()
 
-    # 비정상 ECG Plotting
-    plt.grid()
-    plt.plot(np.arange(140), anomalous_train_data[0])
-    plt.title("An Anomalous ECG")
-    plt.show()
+        # 비정상 ECG Plotting
+        plt.grid()
+        plt.plot(np.arange(140), anomalous_train_data[0])
+        plt.title("An Anomalous ECG")
+        plt.show()
 
-    # 모델 구축
-    _, input_size = train_data.shape
-    ae_model = AutoEncoder([input_size, input_size // 2, input_size // 4, input_size // 8])
-    ae_model.compile(optimizer='adam', loss='mae')
+    if not USE_RNN:
+        # Dense 모델 구축
+        _, input_size = train_data.shape
+        ae_model = AutoEncoder([input_size, input_size // 2, input_size // 4, input_size // 8])
+        ae_model.compile(optimizer='adam', loss='mae')
 
-    # 모델 학습. validation은 training과 달리 전체(normal + abnormal) 테스트 set을 사용하여 평가
-    history = ae_model.fit(normal_train_data, normal_train_data, epochs=20, batch_size=512,
-                           validation_data=(test_data, test_data), shuffle=True)
+        # 모델 학습. validation은 training과 달리 전체(normal + abnormal) 테스트 set을 사용하여 평가
+        history = ae_model.fit(normal_train_data, normal_train_data, epochs=20, batch_size=512,
+                               validation_data=(test_data, test_data), shuffle=True)
 
-    plt.plot(history.history["loss"], label="Training Loss")
-    plt.plot(history.history["val_loss"], label="Validation Loss")
-    plt.legend()
-    plt.show()
+        plt.plot(history.history["loss"], label="Training Loss")
+        plt.plot(history.history["val_loss"], label="Validation Loss")
+        plt.legend()
+        plt.show()
 
-    # 정상 ECG의 재구성 테스트
-    decoded_imgs = ae_model(normal_test_data).numpy()
+        # 정상 ECG의 재구성 테스트
+        decoded_imgs = ae_model(normal_test_data).numpy()
 
-    plt.plot(normal_test_data[0], 'b')
-    plt.plot(decoded_imgs[0], 'r')
-    plt.fill_between(np.arange(140), decoded_imgs[0], normal_test_data[0], color='lightcoral')
-    plt.legend(labels=["Input", "Reconstruction", "Error"])
-    plt.show()
+        plt.plot(normal_test_data[0], 'b')
+        plt.plot(decoded_imgs[0], 'r')
+        plt.fill_between(np.arange(140), decoded_imgs[0], normal_test_data[0], color='lightcoral')
+        plt.legend(labels=["Input", "Reconstruction", "Error"])
+        plt.show()
+
+    if USE_RNN:
+        # RNN 모델 (Seq2Seq) 구축
+        _, input_size = train_data.shape
+
+        seq_train_data = tf.expand_dims(normal_train_data, -1)
+        seq_test_data = tf.expand_dims(test_data, -1)
+        ae_rnn_model = AutoEncoder([input_size], network_type='rnn')
+        ae_rnn_model.compile(optimizer='adam', loss='mae')
+
+        history = ae_rnn_model.fit({"encoder_input": seq_train_data, "decoder_input": seq_train_data},
+                                   seq_train_data,
+                                   epochs=20,
+                                   batch_size=512, shuffle=True)
