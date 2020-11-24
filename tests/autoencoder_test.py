@@ -10,27 +10,38 @@ from ts_datset import *
 class autoencoder_test(unittest.TestCase):
     def test_rnn_type(self):
         # hyper-parameters
-        hidden_size = 64
-        epochs = 40
+        hidden_size = 10
+        epochs = 500
         batch_size = 8
 
         # dataset
-        seq_length = 8  # 시퀀스 길이
+        seq_length = 10  # 시퀀스 길이
         num_train = 32  # 학습 데이터 개수
 
         sample_data = tf.random.normal(shape=[num_train, seq_length, 1])
+        sample_data2 = tf.convert_to_tensor(np.random.randint(0, 10, size=[10, 1]))
+        sample_data2 = tf.reshape(sample_data2, shape=[1, -1, 1])
+
         dataset = tf.data.Dataset.from_tensor_slices(sample_data)
-        dataset = dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE).map(slide_one_step)
+        dataset = dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
         # model
-        model = autoencoder.AutoEncoder([hidden_size], network_type='rnn')
+        model = autoencoder.AutoEncoder([hidden_size],
+                                        network_type='rnn',
+                                        num_of_seqs=seq_length,
+                                        num_of_features=1)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-                      loss=tf.keras.losses.MeanSquaredError, metrics=["MSE"])
+                      loss=tf.keras.losses.MeanSquaredError(), metrics=["MSE"])
+
+        sample_output = model(sample_data)
+        self.assertEqual(sample_output.shape, [num_train, seq_length, 1])
+
         # train model
-        model.fit(dataset, epochs=epochs)
+        model.fit(x=sample_data2, y=sample_data2, epochs=epochs)
+
         # predict by model
-        test_data = sample_data[:1]
-        result = model(sample_data[:1])
+        test_data = sample_data2[:1]
+        result = model(sample_data2[:1])
 
         plt.plot(tf.reshape(test_data, shape=[-1]))
         plt.plot(tf.reshape(result, shape=[-1]))

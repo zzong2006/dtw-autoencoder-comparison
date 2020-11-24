@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import ts_datset
+import math
 
 from autoencoder import AutoEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score
@@ -17,9 +18,9 @@ from tensorflow.keras import layers, losses
 from tensorflow.keras.models import Model
 
 # Hyper-Parameter
-USE_RNN = True
+NETWORK_TYPE = 'var'
 SHOW_DATASET = False
-BATCH_SIZE = 512
+BATCH_SIZE = 128
 
 dataframe = pd.read_csv('http://storage.googleapis.com/download.tensorflow.org/data/ecg.csv', header=None)
 raw_data = dataframe.values
@@ -68,7 +69,10 @@ if SHOW_DATASET:
     plt.title("An Anomalous ECG")
     plt.show()
 
-if not USE_RNN:
+if NETWORK_TYPE == 'normal':
+    # Sample 개수가 Batch size 개수랑 맞아 떨어지게 수정
+    normal_train_data = normal_train_data[:(normal_train_data.shape[0] // BATCH_SIZE) * BATCH_SIZE]
+
     # Dense 모델 구축
     _, input_size = train_data.shape
     ae_model = AutoEncoder([input_size, input_size // 2, input_size // 4, input_size // 8])
@@ -86,44 +90,78 @@ if not USE_RNN:
     # 정상 ECG의 재구성 테스트
     decoded_imgs = ae_model(normal_test_data).numpy()
 
+    # loss: 0.0146 - val_loss: 0.0267
     plt.plot(normal_test_data[0], 'b')
     plt.plot(decoded_imgs[0], 'r')
     plt.fill_between(np.arange(140), decoded_imgs[0], normal_test_data[0], color='lightcoral')
     plt.legend(labels=["Input", "Reconstruction", "Error"])
     plt.show()
 
-if USE_RNN: # RNN 모델 (Seq2Seq) 구축
-    _, input_size = train_data.shape
+if NETWORK_TYPE == 'rnn':  # RNN 모델 (Seq2Seq) 구축
+    _, seq_length = train_data.shape    # ecg seq_legnth는 140
+    epochs = 20
+    features = 10                       # time step을 seq_length // features로 수정 (disjoint window 형식)
+    assert seq_length % features == 0
 
-    # 데이터 셋 제작
-    seq_train_data = tf.expand_dims(normal_train_data, -1)
-    seq_test_data = tf.expand_dims(test_data, -1)
+    # 데이터 셋 제작 (학습 데이터 개수가 batch size의 배수여야 함)
+    normal_train_data = normal_train_data[:(normal_train_data.shape[0] // BATCH_SIZE) * BATCH_SIZE]
 
-    train_dataset = tf.data.Dataset.from_tensor_slices(seq_train_data)
-    train_dataset = train_dataset.batch(BATCH_SIZE)\
-        .map(ts_datset.slide_one_step) \
-        .prefetch(tf.data.experimental.AUTOTUNE)
+    seq_train_data = tf.reshape(normal_train_data, [-1, seq_length // features, features])
+    seq_test_data = tf.reshape(test_data, [-1, seq_length // features, features])
 
     # 모델 생성
-    ae_rnn_model = AutoEncoder([input_size], network_type='rnn')
-    ae_rnn_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.005), loss='mse')
+    ae_rnn_model = AutoEncoder([seq_length], network_type='rnn', num_of_seqs=seq_length // features, num_of_features=features)
+    ae_rnn_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                         loss="mae")
 
     # 학습
-    history = ae_rnn_model.fit(train_dataset, epochs=10, validation_data=(seq_train_data, seq_train_data))
+    history = ae_rnn_model.fit(x=seq_train_data, y=seq_train_data, epochs=epochs, batch_size=BATCH_SIZE,
+                               validation_data=(seq_test_data, seq_test_data), shuffle=True)
 
     plt.plot(history.history["loss"], label="Training Loss")
-    # plt.plot(history.history["val_loss"], label="Validation Loss")
+    plt.plot(history.history["val_loss"], label="Validation Loss")
     plt.legend()
     plt.show()
 
     # 정상 ECG의 재구성 테스트
-    output_seqs = ae_rnn_model(seq_train_data)
+    index = 10
+    output_seqs = ae_rnn_model(seq_test_data)
+    single_seq = output_seqs[index]
     # remove last dimension
-    output_seqs = np.reshape(output_seqs, newshape=[output_seqs.shape[0], -1])
+    single_seq = np.reshape(single_seq, newshape=[-1])
+
+    # Recorded loss: 0.0238 - val_loss: 0.0303
+    plt.plot(normal_test_data[index], 'b')
+    plt.plot(single_seq, 'r')
+    plt.fill_between(np.arange(140), single_seq, normal_test_data[index], color='lightcoral')
+    plt.legend(labels=["Input", "Reconstruction", "Error"])
+    plt.show()
+
+if NETWORK_TYPE == 'cnn':
+    pass
+
+if NETWORK_TYPE == 'var':
+    # Variational(Generative) 모델 구축
+    _, input_size = train_data.shape
+    ae_model = AutoEncoder([input_size, input_size // 2, input_size // 4, input_size // 8],
+                           network_type='var', var_dim= input_size // 8)
+    ae_model.compile(optimizer='adam', loss='mae')
+
+    # 모델 학습. validation은 training과 달리 전체(normal + abnormal) 테스트 set을 사용하여 평가
+    history = ae_model.fit(normal_train_data, normal_train_data, epochs=20, batch_size=BATCH_SIZE,
+                           validation_data=(test_data, test_data), shuffle=True)
+
+    plt.plot(history.history["loss"], label="Training Loss")
+    plt.plot(history.history["val_loss"], label="Validation Loss")
+    plt.legend()
+    plt.show()
+
+    # 정상 ECG의 재구성 테스트
+    decoded_imgs = ae_model(normal_test_data).numpy()
 
     plt.plot(normal_test_data[0], 'b')
-    plt.plot(output_seqs[0], 'r')
-    plt.fill_between(np.arange(140), output_seqs[0], normal_test_data[0], color='lightcoral')
+    plt.plot(decoded_imgs[0], 'r')
+    plt.fill_between(np.arange(140), decoded_imgs[0], normal_test_data[0], color='lightcoral')
     plt.legend(labels=["Input", "Reconstruction", "Error"])
     plt.show()
 
