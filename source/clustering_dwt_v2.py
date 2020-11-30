@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series
 from sklearn import metrics
-from DWT_v2 import DWT
+from discrete_wavelet_transform import DWT
 
 start_time = time.time()
 
-sample = DWT(num_window='all', window_size=140, dataFile='ECG5000_TEST.csv',
-             wvType='haar')
+sample = DWT(num_window='all', window_size=140, file_name='ECG5000_TEST.csv',
+             wavelet_type='haar')
 
 # 9 : 2, 8 : 4, 7 : 8, 6 : 16
 sample.reduce_data(object_dimension=25,
@@ -42,7 +42,7 @@ np.random.seed(seed)
 for i in range(2, numOfCluster):
     print("Euclidean k-means")
     km = TimeSeriesKMeans(n_clusters=i, verbose=True, random_state=0)
-    labels_ = km.fit_predict(to_time_series(sample.reducedWindow))
+    labels_ = km.fit_predict(to_time_series(sample.reduced_window))
 
     # kmeans_model = TimeSeriesKMeans(n_clusters=i, metric="softdtw",
     #                        verbose=True, random_state=seed)

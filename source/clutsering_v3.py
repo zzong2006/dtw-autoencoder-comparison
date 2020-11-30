@@ -53,7 +53,7 @@ for i, v in enumerate(range(sampleClusterNum)):
     for xx in nnAE.normalized_X_test[y_kmeans == v]:
         ax1.plot(xx.ravel(), "k-", alpha=.2)
     ax1.plot(np.mean(nnAE.normalized_X_test[y_kmeans == v], axis=0).ravel(), "r-")
-    plt.xlim(0, nnAE.windowSize)
+    plt.xlim(0, nnAE.length)
     plt.ylim(-4, 4)
     if i == 0:
         ax1.set_title("Euclidean $k$-means")

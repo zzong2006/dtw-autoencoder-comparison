@@ -8,71 +8,64 @@ from sklearn import metrics
 import matplotlib.cm as cm
 from sklearn.preprocessing import StandardScaler
 from mpl_toolkits.mplot3d import Axes3D  # 3d plot을 위한 package
-from DWT_v2 import DWT
+from discrete_wavelet_transform import DWT
 
-start_time = time.time()
-_withLabel = True
-# sample = DWT(num_window='all', dataFile='InsectWingbeatSound_TEST.csv',withLabel=_withLabel, wvType='haar')
-sample = DWT(num_window='all', dataFile='InsectWingbeatSound_TRAIN.csv', withLabel=_withLabel, wvType='haar')
+if __name__ == '__name__':
 
-# 9 : 2, 8 : 4, 7 : 8, 6 : 16
-sample.reduce_data(object_dimension=25,
-                   addition_info=False, lvl=5)
-sample.showComprassPrecision(withReducedData=1)
+    sample = DWT(wavelet_type='haar')
 
-# n_clusters : The number of clusters to form as well as the number of centroids to generate.
-# n_init : Number of time the k-means algorithm will be run with different centroid seeds.
-# The final results will be the best output of n_init consecutive runs in terms of inertia.
+    # 9 : 2, 8 : 4, 7 : 8, 6 : 16
+    sample.reduce_data(dim=25, addition_info=False, lvl=5)
+    sample.showComprassPrecision(withReducedData=1)
 
-# Silhouette method value
-S_score = []
-# Elbow method value
-E_score = []
+    # n_clusters : The number of clusters to form as well as the number of centroids to generate.
+    # n_init : Number of time the k-means algorithm will be run with different centroid seeds.
+    # The final results will be the best output of n_init consecutive runs in terms of inertia.
 
-'''
-'euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 
-'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming',
- 'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski', 
- 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 
- 'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski
-'''
+    # Silhouette method value
+    S_score = []
 
-numOfCluster = 60
-for i in range(2, numOfCluster):
-    kmeans_model = KMeans(init='k-means++', n_clusters=i,
+    '''
+    'euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 
+    'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming',
+     'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski', 
+     'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 
+     'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski
+    '''
+
+    numOfCluster = 5
+
+    kmeans_model = KMeans(init='k-means++', n_clusters=numOfCluster,
                           n_init=10, verbose=False)
-    labels_ = kmeans_model.fit_predict(sample.reducedWindow)
+    labels_ = kmeans_model.fit_predict(sample.reduced_window)
     S_score.append(metrics.silhouette_score(sample.normalizedData, labels_,
                                             metric='euclidean'))
-    E_score.append(metrics.calinski_harabaz_score(sample.normalizedData, labels_))
-print(pd.DataFrame(S_score, index=[x for x in range(2, numOfCluster)]))
-print('max index {} and max value {}'.format(np.argmax(S_score) + 2, np.max(S_score)))
+    print(pd.DataFrame(S_score, index=[x for x in range(2, numOfCluster)]))
+    print('max index {} and max value {}'.format(np.argmax(S_score) + 2, np.max(S_score)))
 
-# sampleClusterNum = 11
-# kmeans_model = KMeans(init='k-means++', n_clusters=sampleClusterNum, n_init=10)
-# y_kmeans = kmeans_model.fit_predict(sample.reducedWindow)
-#
-# if _withLabel :
-#     print('metrics.adjusted_rand_score: {}'.format(metrics.adjusted_rand_score(
-#         sample.true_labels_, y_kmeans
-#     )))
-#
-# fig_window = plt.figure(figsize=(sampleClusterNum, 40))
-# plt.subplots_adjust(hspace=0.5, wspace=0.5)
-#
-# for i, v in enumerate(range(sampleClusterNum)):
-#     ax1 = fig_window.add_subplot(sampleClusterNum, 2, v+1)
-#     for xx in sample.normalizedData[ y_kmeans == v ]:
-#         ax1.plot(xx.ravel(), "k-", alpha=.2)
-#     ax1.plot(np.mean(sample.normalizedData[ y_kmeans == v], axis =0).ravel(),"r-" )
-#     plt.xlim(0, sample.windowSize)
-#     plt.ylim(-4,4)
-#     if i == 0:
-#         ax1.set_title("Euclidean $k$-means")
-# plt.show()
-#
-# plt.close(fig_window)
-#
+    sampleClusterNum = 5
+    kmeans_model = KMeans(init='k-means++', n_clusters=sampleClusterNum, n_init=10)
+    y_kmeans = kmeans_model.fit_predict(sample.reducedWindow)
+
+    print('metrics.adjusted_rand_score: {}'.format(metrics.adjusted_rand_score(
+        sample.true_labels_, y_kmeans
+    )))
+
+    fig_window = plt.figure(figsize=(sampleClusterNum, 40))
+    plt.subplots_adjust(hspace=0.5, wspace=0.5)
+
+    for i, v in enumerate(range(sampleClusterNum)):
+        ax1 = fig_window.add_subplot(sampleClusterNum, 2, v+1)
+        for xx in sample.normalizedData[ y_kmeans == v ]:
+            ax1.plot(xx.ravel(), "k-", alpha=.2)
+        ax1.plot(np.mean(sample.normalizedData[ y_kmeans == v], axis =0).ravel(),"r-" )
+        plt.xlim(0, sample.length)
+        plt.ylim(-4,4)
+        if i == 0:
+            ax1.set_title("Euclidean $k$-means")
+    plt.show()
+
+
 # fig = plt.figure(figsize=(8, 8))
 #
 # grid = plt.GridSpec(2,2)

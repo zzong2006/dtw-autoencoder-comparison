@@ -1,15 +1,16 @@
 import random
 import numpy as np
 
-class WS_KMeans:
-    def __init__(self, init='k-means++', n_clusters = 2 , n_init=10 ):
+
+class CustomKMeans:
+    def __init__(self, init='k-means++', n_clusters=2, n_init=10):
         self.init = init
         self.n_clusters = n_clusters
 
     def fit(self, X):
         # find initial centroids of K-means
         self.X = X
-        if self.init == 'k-means++' :
+        if self.init == 'k-means++':
             self.mu = random.sample(X, 1)
             while len(self.mu) < self.n_clusters:
                 self._dist_from_centers()
@@ -20,20 +21,20 @@ class WS_KMeans:
             self._cluster_points()
 
     def _choose_next_center(self, dis):
-        probs = dis/dis.sum()
+        probs = dis / dis.sum()
         cumprobs = probs.cumsum()
         r = random.random()
         ind = np.where(cumprobs >= r)[0][0]
         return self.X[ind]
 
     def _dist_from_centers(self):
-        D2 = np.array([min([np.linalg.norm(x - c)**2 for c in self.mu]) for x in self.X])
+        D2 = np.array([min([np.linalg.norm(x - c) ** 2 for c in self.mu]) for x in self.X])
         self.mu.append(self._choose_next_center(D2))
 
     def _has_converged(self):
         K = len(self.oldmu)
-        return(set([tuple(a) for a in self.mu]) == set([tuple(a) for a in self.oldmu])
-               and len(self.mu) == K )
+        return (set([tuple(a) for a in self.mu]) == set([tuple(a) for a in self.oldmu])
+                and len(self.mu) == K)
 
     def _cluster_points(self):
         mu = self.mu
@@ -57,4 +58,3 @@ class WS_KMeans:
     # Euclidean Distance Caculator
     def dist(a, b, ax=1):
         return np.linalg.norm(a - b, axis=ax)
-

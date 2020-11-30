@@ -1,0 +1,14 @@
+{
+  "input_data": [
+    {
+      "name" : "ecg5000",
+      "train_path" : "input_data/ecg5000/ECG5000_TRAIN.txt",
+      "test_path" : "input_data/ecg5000/ECG5000_TEST.txt",
+      "sep" : "  ",
+      "header" : "None",
+      "number_of_classes" : "5",
+      "length" : "140",
+      "class_index" : 0
+    }
+  ]
+}
