@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from ts_datset import *
 
 
-class autoencoder_test(unittest.TestCase):
+class AutoEncoderTest(unittest.TestCase):
     def test_rnn_type(self):
         # hyper-parameters
         hidden_size = 10
@@ -28,7 +28,7 @@ class autoencoder_test(unittest.TestCase):
         # model
         model = autoencoder.AutoEncoder([hidden_size],
                                         network_type='rnn',
-                                        num_of_seqs=seq_length,
+                                        time_steps=seq_length,
                                         num_of_features=1)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
                       loss=tf.keras.losses.MeanSquaredError(), metrics=["MSE"])

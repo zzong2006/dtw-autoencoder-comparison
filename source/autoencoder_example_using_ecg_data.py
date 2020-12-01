@@ -110,7 +110,7 @@ if NETWORK_TYPE == 'rnn':  # RNN 모델 (Seq2Seq) 구축
     seq_test_data = tf.reshape(test_data, [-1, seq_length // features, features])
 
     # 모델 생성
-    ae_rnn_model = AutoEncoder([seq_length], network_type='rnn', num_of_seqs=seq_length // features, num_of_features=features)
+    ae_rnn_model = AutoEncoder([seq_length], network_type='rnn', time_steps=seq_length // features, num_of_features=features)
     ae_rnn_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
                          loss="mae")
 
@@ -144,7 +144,7 @@ if NETWORK_TYPE == 'var':
     # Variational(Generative) 모델 구축
     _, input_size = train_data.shape
     ae_model = AutoEncoder([input_size, input_size // 2, input_size // 4, input_size // 8],
-                           network_type='var', var_dim= input_size // 8)
+                           network_type='var')
     ae_model.compile(optimizer='adam', loss='mae')
 
     # 모델 학습. validation은 training과 달리 전체(normal + abnormal) 테스트 set을 사용하여 평가

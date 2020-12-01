@@ -13,11 +13,20 @@ from tensorflow.keras.models import Model
 
 class AutoEncoder(Model):
     def __init__(self, num_of_hidden: list,
-                 num_of_seqs: int = None,
+                 time_steps: int = None,
                  network_type: str = 'normal',
                  num_of_features=1,
-                 var_dim=None,
                  **kwargs):
+        """
+
+        :param num_of_hidden: the list of hidden layer units
+        :param time_steps: Sequence time steps when using RNN
+        :param network_type: 'normal', 'rnn', 'var'
+        :param num_of_features: Sequence features when using RNN
+        :param var_dim: variational AutoEncoder latent vector
+        :param kwargs:
+        """
+
         super(AutoEncoder, self).__init__()
         self.encoder = tf.keras.Sequential()
         self.decoder = tf.keras.Sequential()
@@ -37,32 +46,31 @@ class AutoEncoder(Model):
             self.decoder.add(layers.Dense(num_of_hidden[0], activation='sigmoid'))
 
         elif network_type == 'rnn':  # LSTM AutoEncoder
-            assert num_of_seqs is not None
+            assert time_steps is not None
             hidden_units = num_of_hidden[0]
             # Encoder 모델 레이어 설정
-            self.encoder.add(tf.keras.Input(shape=(num_of_seqs, num_of_features)))
+            self.encoder.add(tf.keras.Input(shape=(time_steps, num_of_features)))
             self.encoder.add(layers.LSTM(hidden_units // 2, return_sequences=False, activation='relu'))
-            self.encoder.add(layers.RepeatVector(num_of_seqs))
+            self.encoder.add(layers.RepeatVector(time_steps))
 
             # Decoder 모델 레이어 설정
-            self.decoder.add(tf.keras.Input(shape=(num_of_seqs, hidden_units // 2)))
+            self.decoder.add(tf.keras.Input(shape=(time_steps, hidden_units // 2)))
             self.decoder.add(layers.LSTM(hidden_units // 2, return_sequences=True, activation='relu'))
             self.decoder.add(layers.TimeDistributed(layers.Dense(num_of_features, activation='sigmoid')))
 
         elif network_type == 'cnn':  # convolutional autoencoder
             self.encoder.add(layers.Conv1D(num_of_hidden[0] // 8))
         elif network_type == 'var':  # variational autoencoder
-            assert var_dim is not None
             # Encoder 모델 레이어 설정
             self.encoder.add(tf.keras.Input(shape=(num_of_hidden[0],)))  # 입력 array shape는 (None, units[0])
-            for i in range(1, len(num_of_hidden)):
+            for i in range(1, len(num_of_hidden) - 1):
                 self.encoder.add(layers.Dense(num_of_hidden[i], activation='relu'))
-            self.z_mean = layers.Dense(var_dim)
-            self.z_log_var = layers.Dense(var_dim)
+            self.z_mean = layers.Dense(num_of_hidden[-1])
+            self.z_log_var = layers.Dense(num_of_hidden[-1])
             self.sampling = Sampling()
 
             # Decoder 모델 레이어 설정
-            self.decoder.add(tf.keras.Input(shape=(var_dim,)))
+            self.decoder.add(tf.keras.Input(shape=(num_of_hidden[-1],)))
             for i in reversed(range(1, len(num_of_hidden))):
                 self.decoder.add(layers.Dense(num_of_hidden[i], activation='relu'))
             self.decoder.add(layers.Dense(num_of_hidden[0], activation='sigmoid'))
@@ -115,6 +123,23 @@ class AutoEncoder(Model):
             decoded = self.decoder(sampled)
         return decoded
 
+    @tf.function
+    def encoding(self, inputs):
+        encoded = None
+        if self.type == 'normal':
+            encoded = self.encoder(inputs)
+        elif self.type == 'rnn':
+            encoded = self.encoder(inputs)
+        elif self.type == 'cnn':
+            pass
+        elif self.type == 'var':
+            encoded = self.encoder(inputs)
+            z_mean = self.z_mean(encoded)
+            z_log_var = self.z_log_var(encoded)
+            encoded = self.sampling((z_mean, z_log_var))
+
+        return encoded
+
     def get_config(self):
         pass
 
@@ -162,7 +187,7 @@ class DecoderRNN(Model):
     def get_config(self):
         pass
 
-    def call(self, inputs, hidden):
+    def call(self, inputs, hidden=None, training=None, mask=None):
         output, state = self.rnn(inputs, initial_state=hidden)
         output = self.fc(output)
         return output, state

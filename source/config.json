@@ -6,9 +6,16 @@
       "test_path" : "input_data/ecg5000/ECG5000_TEST.txt",
       "sep" : "  ",
       "header" : "None",
-      "number_of_classes" : "5",
-      "length" : "140",
+      "number_of_classes" : 5,
+      "length" : 140,
       "class_index" : 0
     }
-  ]
+  ],
+  "wavelet_type": "haar",
+  "AutoEncoder" :
+  {
+    "batch_size" : 64,
+    "learning_rate" : 1e-3,
+    "epochs" : 20
+  }
 }

@@ -10,6 +10,10 @@ import matplotlib.cm as cm
 from sklearn.datasets import make_blobs
 from autoencoder import *
 
+
+if __name__ == '__main__':
+    pass
+
 _withLabel = True
 nnAE = nnAutoEncoder(trainFile='InsectWingbeatSound_TRAIN.csv',
                      testFile='InsectWingbeatSound_TRAIN.csv',

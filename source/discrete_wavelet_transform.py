@@ -11,15 +11,9 @@ from sklearn import preprocessing
 
 
 class DWT:
-    def __init__(self, wavelet_type='haar', normalized=True):
+    def __init__(self, wavelet_type='haar'):
         self.windowData = []
         self.waveletType = wavelet_type
-
-
-        if normalized:
-            self.normalizedData = preprocessing.scale(self.windowData)
-        else:
-            self.normalizedData = self.windowData
 
     def get_dwt_max_level(self, dataset):
         """
@@ -32,42 +26,43 @@ class DWT:
 
         return max_level
 
-    def reduce_data(self, dim=128, addition_info=True, lvl=5):
+    def do_dim_reduction(self, dataset, dim=128, addition_info=True, lvl=5):
+        total, length = dataset.shape
 
-        coeffs_haar = pywt.wavedec(self.windowData[0], self.waveletType, level=lvl)
+        wv_coef = pywt.wavedec(self.windowData[0], self.waveletType, level=lvl)
         print('The number of approximation coefficients of DWT : {}'.format(
-            len(coeffs_haar[0])
+            len(wv_coef[0])
         ))
 
         # coeffSlices는 original data로 복구할려면 필요하다.
         self.reduced_window = []
-        self.coeffSlices = []
+
         self.recoveredWindow = []
 
         # detailed coefficients의 min, max, variance를 첨가한다.
         if addition_info:
-            for z in range(self.total):
-                coeffs_haar = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
+            for z in range(total):
+                wv_coef = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
 
                 # self.reducedWindow.append(coeffs_haar[0].tolist())
                 self.reduced_window.append([])
 
-                for w in range(0, len(coeffs_haar)):
-                    self.reduced_window[z] = np.append(self.reduced_window[z], np.max(coeffs_haar[w]))
-                    self.reduced_window[z] = np.append(self.reduced_window[z], np.min(coeffs_haar[w]))
-                    self.reduced_window[z] = np.append(self.reduced_window[z], np.std(coeffs_haar[w]))
-                    self.reduced_window[z] = np.append(self.reduced_window[z], np.mean(coeffs_haar[w]))
+                for w in range(0, len(wv_coef)):
+                    self.reduced_window[z] = np.append(self.reduced_window[z], np.max(wv_coef[w]))
+                    self.reduced_window[z] = np.append(self.reduced_window[z], np.min(wv_coef[w]))
+                    self.reduced_window[z] = np.append(self.reduced_window[z], np.std(wv_coef[w]))
+                    self.reduced_window[z] = np.append(self.reduced_window[z], np.mean(wv_coef[w]))
                 self.num_elements = len(self.reduced_window[z])
 
         else:
-            for z in range(self.total):
-                coeffs_haar = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
+            for z in range(total):
+                wv_coef = pywt.wavedec(self.normalizedData[z], self.waveletType, level=lvl)
 
                 # for i in range(0, len(coeffs_haar)):
                 #     modified_coeffs_haar01[i] = pywt.threshold(coeffs_haar[i], 0,'hard')
 
-                self.reduced_window.append(coeffs_haar[0])
-                self.num_elements = len(coeffs_haar[0])
+                self.reduced_window.append(wv_coef[0])
+                self.num_elements = len(wv_coef[0])
 
         self.reduced_window = np.reshape(self.reduced_window, (-1, self.num_elements))
         # self.reducedWindow = preprocessing.scale(self.reducedWindow)
@@ -81,8 +76,9 @@ class DWT:
         # w02 = plt.figure(); plt.plot(self.reducedWindow[4]);
         # plt.close(w01); plt.close(w02);
 
+    # 압축된 윈도우를 얼마나 줄였는지 보여준다.
     # v2 는 복구하는 버전을 생략했음 (어차피 window 원본을 사용할 것이기 때문에). 시간이 있으면 만들어 봐도 좋음.
-    def showComprassPrecision(self, num_window=20, withReducedData=0):
+    def show_compress_precision(self, num_window=20, withReducedData=0):
         pass
         # for z in range(num_window):
         #     # elementsForRestore =  copy.copy(self.reducedWindow[z])
@@ -97,5 +93,5 @@ class DWT:
         #     print(str(np.mean(self.windowData[z])) + ' & ' + str(np.mean(reconed_coeffs_haar01)))
         #     print('Difference Average : "' + str(np.mean(self.windowData[z] - reconed_coeffs_haar01)) + '"')
 
-    def getReducedDatas(self):
+    def get_reduced_data(self):
         return self.reduced_window
